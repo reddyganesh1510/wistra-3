@@ -15,9 +15,9 @@ router.get("/api/interviewStatus/:id", async (req, res) => {
 });
 
 router.post("/api/pushSideCarLogs/:id", async (req, res) => {
-  const sidecarInsights = await evaluateSideCarLogs(req.body.logs);
+  const sidecarInsights = await evaluateSideCarLogs(JSON.stringify(req.body));
 
-  const interview = updateSideCarLogs(req.params.id, sidecarInsights);
+  const interview = await updateSideCarLogs(req.params.id, sidecarInsights);
   res.json({ interview: interview });
 });
 

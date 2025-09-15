@@ -5,7 +5,12 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export const evaluateInterview = async (transcript, questionsJson, level) => {
+export const evaluateInterview = async (
+  transcript,
+  questionsJson,
+  level,
+  logs
+) => {
   // Build dynamic prompt
   let prompt = `You are an expert interviewer evaluator. 
 Candidate Level: ${level}
@@ -26,16 +31,22 @@ Evaluate the following candidate's answers based on these questions and evaluati
   prompt += `Candidate Transcript:
 ${transcript}
 
-Instructions:
+`;
+
+  if (logs && logs.length > 0) {
+    prompt += `
+Additionally, use the following proctoring sidecar logs for any suspicious activities during the interview along with the evaluation:
+${logs}
+`;
+  }
+  prompt += `Instructions:
 - Provide an overall feedback summarizing the candidate's strengths, weaknesses, and skills, be linent as its an R1 interview.
 - Based on the transcript, give an overall verdict: APPROVE or REJECT.
 - Respond only in JSON format:
 {
   "feedback": "<Overall analysis of candidate>",
   "verdict": "<APPROVE/REJECT>"
-}
-`;
-
+}`;
   const response = await openai.chat.completions.create({
     model: "gpt-4.1-mini",
     messages: [{ role: "user", content: prompt }],
@@ -53,11 +64,9 @@ Instructions:
   }
 };
 
-export const evaluateFeedbackForInterviewBetweenInterviewerAndCandidate = async (
-  transcript,
-  level
-) => {
-  let prompt = `You are an expert interviewer evaluator. 
+export const evaluateFeedbackForInterviewBetweenInterviewerAndCandidate =
+  async (transcript, level, logs) => {
+    let prompt = `You are an expert interviewer evaluator. 
 Candidate Level: ${level}
 
 You are given a transcript of a real interview between a human interviewer and a candidate. 
@@ -72,29 +81,35 @@ Your task:
 Transcript:
 ${transcript}
 
-Instructions:
+`;
+    if (logs && logs.length > 0) {
+      prompt += `
+Additionally, use the following proctoring sidecar logs for any suspicious activities during the interview along with the evaluation:
+${logs}
+`;
+    }
+    prompt += `Instructions:
 - Provide an overall feedback summarizing the candidate's strengths, weaknesses, and skills, be linent as its an R1 interview.
 - Based on the transcript, give an overall verdict: APPROVE or REJECT.
 - Respond only in JSON format:
 {
   "feedback": "<Overall analysis of candidate>",
   "verdict": "<APPROVE/REJECT>"
-}
-`;
+}`;
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4.1-mini",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.5,
-  });
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.5,
+    });
 
-  try {
-    // Parse JSON safely
-    const text = response.choices[0].message.content;
-    const result = JSON.parse(text);
-    return result;
-  } catch (err) {
-    console.error("Failed to parse JSON from OpenAI:", err);
-    return { feedback: [], verdict: "REJECT" };
-  }
-};
+    try {
+      // Parse JSON safely
+      const text = response.choices[0].message.content;
+      const result = JSON.parse(text);
+      return result;
+    } catch (err) {
+      console.error("Failed to parse JSON from OpenAI:", err);
+      return { feedback: [], verdict: "REJECT" };
+    }
+  };

@@ -12,14 +12,7 @@ You are a precise security analyst.
 Analyze activity logs and return ONLY valid JSON. 
 Ignore all normal key presses and mouse movements. 
 Only consider action-based events like copy, paste, or clipboard access. 
-
-JSON schema: {
-  summary: string, 
-  overallRiskScore: number(0-10), 
-  suspicious: [ { id: string, excerpt: string, reason: string, severity: number(0-10) } ] 
-}
-
-
+If apps other than chrome are used, flag them as suspicious.
 
 Logs to analyze (redacted as requested):
 ${logs}
@@ -30,7 +23,11 @@ Instructions:
 3) Detect repeated copy actions in a short time frame.
 4) Do NOT flag individual keystrokes or mouse movements.
 5) For each suspicious entry, provide severity 0-10 (higher for long clipboard content or repeated copies).
-6) Output strictly valid JSON following the schema.
+6) Respond only in JSON parseable format:
+7) dont add OpenAI response: backticks json
+{
+  suspicious: [ { id: "<log entry id>", excerpt: "<log excerpt>", reason: "<why flagged>", severity: <0-10> } ],
+}
 `;
 
   const response = await openai.chat.completions.create({
@@ -42,6 +39,8 @@ Instructions:
   try {
     // Parse JSON safely
     const text = response.choices[0].message.content;
+
+    console.log("OpenAI response:", text);
 
     return text;
   } catch (err) {

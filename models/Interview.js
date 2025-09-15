@@ -69,6 +69,14 @@ const InterviewSchema = new mongoose.Schema(
       type: String,
       default: "interview",
     },
+    feedbackWithLogs: {
+      type: Object,
+      default: {},
+    },
+    feedbackStatusWithLogs: {
+      type: Object,
+      default: {},
+    },
   },
   {
     timestamps: true, // adds createdAt and updatedAt

@@ -10,19 +10,21 @@ import proctoringRoutes from "./routes/proctoringRoutes.js";
 import { processBookings } from "./services/bookingService.js";
 import {
   generateFeedbackForInterviewAndUpdateInterviewNinja,
+  generateFeedBackForInterviewWithoutBotWithLogs,
   getInterviewsWhoseRecordingIsDoneButTranscriptPending,
   getInterviewsWhoseTranscriptIsTriggered,
   setRecordingIdWhoseInterviewIsCompleted,
 } from "./services/interviewService.js";
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 const PORT = 9000;
 
 // 🔹 Start cron
-startCron();
+// startCron();
 // processBookings();
-
+generateFeedBackForInterviewWithoutBotWithLogs();
 // 🔹 Register routes
 app.use("/", bookingRoutes);
 app.use("/", proctoringRoutes);

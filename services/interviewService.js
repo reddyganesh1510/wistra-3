@@ -8,7 +8,10 @@ import {
 } from "./recallBotEndpointService.js";
 
 import { connectMongo } from "../config/mongoose.js";
-import { evaluateFeedbackForInterviewBetweenInterviewerAndCandidate, evaluateInterview } from "./feedbackService.js";
+import {
+  evaluateFeedbackForInterviewBetweenInterviewerAndCandidate,
+  evaluateInterview,
+} from "./feedbackService.js";
 import axios from "axios";
 await connectMongo();
 
@@ -217,6 +220,96 @@ export const generateFeedBackForInterviewWithoutBot = async () => {
       { interviewId: interview.interviewId },
       {
         $set: { feedback: feedback, feedbackStatus: "completed" },
+      }, // update status
+      { new: true }
+    );
+    const interviewData = {
+      feedback: finalInterview.feedback,
+    };
+    const response = await axios.post(
+      `http://localhost:2000/api/interviews/${interview.interviewId}`,
+      interviewData,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  });
+};
+
+export const generateFeedbackForInterviewAndUpdateInterviewNinjaWithLogs =
+  async () => {
+    const interviews = await Interview.find({
+      transcriptStatus: "completed",
+      transcript: { $ne: "awaiting" },
+
+      feedbackStatusWithLogs: { $ne: "completed" },
+      typeofBot: "interview",
+    });
+    interviews.forEach(async (interview) => {
+      console.log(
+        "Generating feedback for interviews... ",
+        interview.interviewId
+      );
+      const feedback = await evaluateInterview(
+        interview.transcript,
+        interview.questions,
+        interview.candidate.levelName,
+        interview.sidecarLogs
+      );
+      let finalInterview = await Interview.findOneAndUpdate(
+        { interviewId: interview.interviewId },
+        {
+          $set: {
+            feedbackWithLogs: feedback,
+            feedbackStatusWithLogs: "completed",
+          },
+        }, // update status
+        { new: true }
+      );
+      const interviewData = {
+        feedback: finalInterview.feedback,
+      };
+      const response = await axios.post(
+        `http://localhost:2000/api/interviews/${interview.interviewId}`,
+        interviewData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      return response.data;
+    });
+  };
+
+export const generateFeedBackForInterviewWithoutBotWithLogs = async () => {
+  const interviews = await Interview.find({
+    transcriptStatus: "completed",
+    transcript: { $ne: "awaiting" },
+    feedbackStatusWithLogs: { $ne: "completed" },
+    typeofBot: { $ne: "interview" },
+  });
+  interviews.forEach(async (interview) => {
+    console.log(
+      "Generating feedback for interviews without bot... ",
+      interview.interviewId
+    );
+    const feedback =
+      await evaluateFeedbackForInterviewBetweenInterviewerAndCandidate(
+        interview.transcript,
+        interview.candidate.levelName,
+        interview.sidecarLogs
+      );
+    let finalInterview = await Interview.findOneAndUpdate(
+      { interviewId: interview.interviewId },
+      {
+        $set: {
+          feedbackWithLogs: feedback,
+          feedbackStatusWithLogs: "completed",
+        },
       }, // update status
       { new: true }
     );
