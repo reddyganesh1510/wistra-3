@@ -20,15 +20,15 @@ const InterviewSchema = new mongoose.Schema(
       default: "awaiting",
     },
     feedback: {
-      type: String,
-      default: "",
+      type: Object,
+      default: {},
     },
     botId: {
       type: String,
     },
     sidecarLogs: {
-      type: Object, // proctoring sidecar logs
-      default: {},
+      type: String, // proctoring sidecar logs
+      default: "",
     },
     avLogs: {
       type: Object, // audio/video logs
@@ -49,18 +49,26 @@ const InterviewSchema = new mongoose.Schema(
     endTime: {
       type: Date,
     },
-    recordingId:{
-        type: String,
-        default: "",
+    recordingId: {
+      type: String,
+      default: "",
     },
-    recordingStatus:{
-        type: String,
-        default: "pending",
+    recordingStatus: {
+      type: String,
+      default: "pending",
     },
-    transcriptStatus:{
-        type: String,
-        default: "pending",
-    }
+    transcriptStatus: {
+      type: String,
+      default: "pending",
+    },
+    feedbackStatus: {
+      type: String,
+      default: "pending",
+    },
+    typeofBot: {
+      type: String,
+      default: "interview",
+    },
   },
   {
     timestamps: true, // adds createdAt and updatedAt

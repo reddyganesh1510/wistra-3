@@ -6,17 +6,26 @@ await connectMongo();
 import express from "express";
 import { startCron } from "./services/cronJob.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
+import proctoringRoutes from "./routes/proctoringRoutes.js";
 import { processBookings } from "./services/bookingService.js";
+import {
+  generateFeedbackForInterviewAndUpdateInterviewNinja,
+  getInterviewsWhoseRecordingIsDoneButTranscriptPending,
+  getInterviewsWhoseTranscriptIsTriggered,
+  setRecordingIdWhoseInterviewIsCompleted,
+} from "./services/interviewService.js";
 
 const app = express();
-const PORT = process.env.PORT || 9000;
+app.use(express.json());
+const PORT = 9000;
 
 // 🔹 Start cron
 startCron();
-processBookings();
+// processBookings();
 
 // 🔹 Register routes
 app.use("/", bookingRoutes);
+app.use("/", proctoringRoutes);
 
 // 🔹 Start server
 app.listen(PORT, () => {

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getTranscriptFromJson } from "./transcriptService.js";
 
 const apiKey = process.env.RECALL_API_KEY; // load from env
 
@@ -46,22 +47,31 @@ export const getActiveBotsMetaData = async () => {
 };
 
 export const getRecordingId = async (botId) => {
-  const response = await axios.get(
-    "https://us-west-2.recall.ai/api/v1/recording/",
-    {
-      headers: {
-        Authorization: process.env.RECALL_API_KEY, // put Bearer in .env
-        Accept: "application/json",
-      },
-      params: {
-        bot_id: botId,
-      },
-    }
-  );
+  try {
+    const response = await axios.get(
+      "https://us-west-2.recall.ai/api/v1/recording/",
+      {
+        headers: {
+          Authorization: process.env.RECALL_API_KEY, // put Bearer in .env
+          Accept: "application/json",
+        },
+        params: {
+          bot_id: botId,
+        },
+      }
+    );
 
-  // return full metadata object
-  const results = response.data?.results[0]?.id;
-    return results || null;
+    // return full metadata object
+    const recordingId = response.data?.results[0]?.id;
+    const recordingStatus = response.data?.results[0]?.status?.code;
+
+    return { recordingId: recordingId, recordingStatus: recordingStatus };
+  } catch (error) {
+    console.error(
+      "Error fetching recording ID:",
+      error.response?.data || error.message
+    );
+  }
 };
 
 export const createTranscript = async (recordingId) => {
@@ -77,7 +87,7 @@ export const createTranscript = async (recordingId) => {
       },
       {
         headers: {
-          Authorization: ENV.RECALL_API_KEY,
+          Authorization: process.env.RECALL_API_KEY,
           Accept: "application/json",
           "Content-Type": "application/json",
         },
@@ -92,4 +102,30 @@ export const createTranscript = async (recordingId) => {
     );
     throw error;
   }
-}
+};
+
+export const getTranscript = async (recordingId) => {
+  try {
+    const response = await axios.get(
+      `https://us-west-2.recall.ai/api/v1/transcript/?recording_id=${recordingId}`,
+      {
+        headers: {
+          Authorization: process.env.RECALL_API_KEY,
+          Accept: "application/json",
+        },
+      }
+    );
+    let res = response.data.results;
+    if (res && res.length > 0) {
+      const download_url = res[0]?.data?.download_url;
+      const transcript = await axios.get(download_url);
+      return getTranscriptFromJson(transcript.data);
+    }
+  } catch (error) {
+    console.error(
+      "Error fetching transcript:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

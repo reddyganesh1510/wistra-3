@@ -26,62 +26,103 @@ export const fetchBookings = async () => {
 };
 
 export const createBot = async (booking) => {
-  const questionsMetadata = await getQuestionsForSetAndGenerateMetadata(
-    booking.interviewSetId
-  );
-  const rulesMetadata = await getRulesAndIntroduction(
-    booking.candidateName,
-    booking.levelName
-  );
-
-  const payload = {
-    meeting_url: booking.meetingLink,
-    bot_name: BOT_NAME,
-    join_at: booking.startDateTime,
-    recording_config: {
-      retention: { type: "timed", hours: RETENTION_HOURS },
-    },
-    output_media: {
-      camera: {
-        kind: "webpage",
-        config: { url: OUTPUT_MEDIA_URL },
+  let payload;
+  if (!booking.interviewerId) {
+    // interviewerId not present → minimal payload
+    payload = {
+      meeting_url: booking.meetingLink,
+      bot_name: BOT_NAME + " Transcripitor",
+      join_at: booking.startDateTime,
+      recording_config: {
+        transcript: {
+          provider: {
+            recallai_streaming: {},
+          },
+        },
       },
-    },
-    variant: {
-      zoom: "web_4_core",
-      google_meet: "web_4_core",
-      microsoft_teams: "web_4_core",
-    },
-    metadata: {
+    };
+
+    const res = await axios.post(RECALL_API, payload, {
+      headers: {
+        Authorization: AUTH_TOKEN,
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+    });
+    const questionsMetadata = await getQuestionsForSetAndGenerateMetadata(
+      booking.interviewSetId
+    );
+    const rulesMetadata = await getRulesAndIntroduction(
+      booking.candidateName,
+      booking.levelName
+    );
+    const interview = new Interview({
       interviewId: booking.id,
-    },
-  };
-//   console.log("Creating bot with payload:", JSON.stringify(payload, null, 2));
-
-  const res = await axios.post(RECALL_API, payload, {
-    headers: {
-      Authorization: AUTH_TOKEN,
-      accept: "application/json",
-      "content-type": "application/json",
-    },
-  });
-
-  const interview = new Interview({
-    interviewId: booking.id,
-    candidate: {
-      name: booking.candidateName,
-      levelName: booking.levelName,
-    },
-    questions: questionsMetadata,
-    botId: res.data.id,
-    startTime: new Date(booking.startDateTime),
-    endTime: new Date(booking.endDateTime),
-    status: "pending",
-  });
-  const savedInterview = await interview.save();
+      candidate: {
+        name: booking.candidateName,
+        levelName: booking.levelName,
+      },
+      questions: questionsMetadata,
+      botId: res.data.id,
+      startTime: new Date(booking.startDateTime),
+      endTime: new Date(booking.endDateTime),
+      status: "in_progress",
+      typeofBot: "transcrpitor",
+    });
+    const savedInterview = await interview.save();
+  } else {
+    payload = {
+      meeting_url: booking.meetingLink,
+      bot_name: BOT_NAME,
+      join_at: booking.startDateTime,
+      recording_config: {
+        retention: { type: "timed", hours: RETENTION_HOURS },
+      },
+      output_media: {
+        camera: {
+          kind: "webpage",
+          config: { url: OUTPUT_MEDIA_URL },
+        },
+      },
+      variant: {
+        zoom: "web_4_core",
+        google_meet: "web_4_core",
+        microsoft_teams: "web_4_core",
+      },
+      metadata: {
+        interviewId: booking.id,
+      },
+    };
+    const res = await axios.post(RECALL_API, payload, {
+      headers: {
+        Authorization: AUTH_TOKEN,
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+    });
+    const questionsMetadata = await getQuestionsForSetAndGenerateMetadata(
+      booking.interviewSetId
+    );
+    const rulesMetadata = await getRulesAndIntroduction(
+      booking.candidateName,
+      booking.levelName
+    );
+    const interview = new Interview({
+      interviewId: booking.id,
+      candidate: {
+        name: booking.candidateName,
+        levelName: booking.levelName,
+      },
+      questions: questionsMetadata,
+      botId: res.data.id,
+      startTime: new Date(booking.startDateTime),
+      endTime: new Date(booking.endDateTime),
+      status: "pending",
+    });
+    const savedInterview = await interview.save();
+  }
 
   console.log(`✅ Bot created for booking ${booking.id}`);
-  return res.data;
 };
 
 export const processBookings = async () => {

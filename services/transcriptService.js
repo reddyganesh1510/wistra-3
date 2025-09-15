@@ -9,3 +9,4 @@ export const getTranscriptFromJson = (data) => {
     .join(" "); // If multiple participants
 };
 
+
